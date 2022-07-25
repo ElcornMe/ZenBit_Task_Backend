@@ -27,7 +27,7 @@ app.post("/api",  function (request, response) {
     // response.send(`${request.body.name} - ${request.body.email} - ${request.body.message}`);
     const SelectUserInfoId = `SELECT ID FROM UserInfo WHERE Email = ?`;
     db.query(SelectUserInfoId, request.body.email ,(err, result) => {
-        userId = result[0].ID
+        userId = result[0]
         if(result.length == 0) {
             const InsertIntoUserInfo = `INSERT INTO UserInfo
             ( Email, Name ) VALUES(?, ?)`
