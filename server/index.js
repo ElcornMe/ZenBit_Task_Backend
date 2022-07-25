@@ -43,7 +43,7 @@ app.post("/api",  function (request, response) {
 
         db.query(InsertIntoMessage, [ userId, request.body.message], (err, result) => {const GetAllMessage = `SELECT Content FROM Message WHERE UserId = ?`
             db.query(GetAllMessage, userId, (err, result) => {
-            console.log(result)
+            console.log("my" + result)
             return response.status(200).json({ result });
         })
 
