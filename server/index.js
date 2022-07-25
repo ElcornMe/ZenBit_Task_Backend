@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const PORT = process.env.PORT || 3001;
 const app = express();
 const mysql = require('mysql2');
-const db = mysql.createPool({
+const pool = mysql.createPool({
     host: 'sql11.freesqldatabase.com', // the host name MYSQL_DATABASE: node_mysql
     user: 'sql11508435', // database user MYSQL_USER: MYSQL_USER
     password: 'tC9x8FIxXi', // database user password MYSQL_PASSWORD: MYSQL_PASSWORD
@@ -21,36 +21,82 @@ app.use(cors());
 
 
 
-app.post("/api",  function (request, response) {
+app.post("/api", async function (request, response) {
     if(!request.body) return response.status(400);
     let userId = 0;
     // response.send(`${request.body.name} - ${request.body.email} - ${request.body.message}`);
-    const SelectUserInfoId = `SELECT ID FROM UserInfo WHERE Email = ?`;
-    db.query(SelectUserInfoId, request.body.email ,(err, result) => {
-        userId = result[0].ID
-        if(result.length == 0) {
-            const InsertIntoUserInfo = `INSERT INTO UserInfo
-            ( Email, Name ) VALUES(?, ?)`
 
-            db.query(InsertIntoUserInfo, [request.body.email, request.body.name], (err, result) => {
-                db.query(SelectUserInfoId, request.body.email ,(err, result) => {
-                    userId = result[0].ID
-                })
-            })
+    try{
+        let allIdByEmail = await SelectUserInfoIdByEmail(request.body.email);
+        if(allIdByEmail.length == 0) 
+        {
+            await InsertIntoUserInfo(request.body.email, request.body.name)
+            let allIdByEmailafterInsert = await SelectUserInfoIdByEmail(request.body.email);
+            userId = allIdByEmailafterInsert[0].ID
         }
-        const InsertIntoMessage =`INSERT INTO Message
-        ( UserId, Content ) VALUES(?, ?)`
-
-        db.query(InsertIntoMessage, [ userId, request.body.message], (err, result) => {const GetAllMessage = `SELECT Content FROM Message WHERE UserId = ?`
-            db.query(GetAllMessage, userId, (err, result) => {
-            console.log("my" + result)
-            return response.status(200).json({ result });
-        })
-
-        })
-    })
+        else{
+            userId = allIdByEmail[0].ID
+        }
+        await InsertIntoMessage(userId, request.body.message)
+        const allMessageByUserId = await GetAllMessageByUserId(userId)
+        return response.status(200).json({ allMessageByUserId });
+    } 
+    catch(error){
+        console.log(error)
+    }
 });
 
 app.listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);
 })
+
+
+SelectUserInfoIdByEmail = (email) =>{
+    const SelectUserInfoId = `SELECT ID FROM UserInfo WHERE Email = ?`;
+    return new Promise((resolve, reject)=>{
+        pool.query(SelectUserInfoId, email, (error, results)=>{
+            if(error){
+                return reject(error);
+            }
+            return resolve(results);
+        });
+    });
+};
+
+InsertIntoMessage = (userId, message) =>{
+    const InsertIntoMessage =`INSERT INTO Message ( UserId, Content ) VALUES(?, ?)`
+    return new Promise((resolve, reject)=>{
+        pool.query(InsertIntoMessage, [userId, message] ,(error, results)=>{
+            if(error){
+                return reject(error);
+            }
+            return resolve(results);
+        });
+    });
+};
+
+GetAllMessageByUserId = (userId) =>{
+    const GetAllMessage = `SELECT Content FROM Message WHERE UserId = ?`
+    return new Promise((resolve, reject)=>{
+        pool.query(GetAllMessage, userId,(error, results)=>{
+            if(error){
+                return reject(error);
+            }
+            return resolve(results);
+        });
+    });
+};
+
+InsertIntoUserInfo = (email, name) =>{
+    const InsertIntoUserInfo = `INSERT INTO UserInfo ( Email, Name ) VALUES(?, ?)`
+    return new Promise((resolve, reject)=>{
+        pool.query(InsertIntoUserInfo, [email, name],(error, results)=>{
+            if(error){
+                return reject(error);
+            }
+            return resolve(results);
+        });
+    });
+};
+
+InsertIntoUserInfo
