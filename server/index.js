@@ -18,7 +18,6 @@ app.use(express.json());
 app.use(bodyParser.json())
 
 
-const cors=require("cors");
 const corsOptions ={
    origin:'*', 
    credentials:true,            //access-control-allow-credentials:true
